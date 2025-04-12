@@ -2,9 +2,9 @@
 #   source  = "terraform-aws-modules/ec2-instance/aws"
 #   version = "5.8.0"
 #   count   = 1
-# 
+
 #   name = "oidc-instance"
-# 
+
 #   instance_type               = "t2.micro"
 #   subnet_id                   = module.vpc.public_subnets[0]
 #   iam_instance_profile        = aws_iam_instance_profile.ec2_ssm_profile_oidc_module.name
@@ -12,15 +12,15 @@
 #   vpc_security_group_ids      = [aws_security_group.ssm_and_http.id]
 #   associate_public_ip_address = true
 # }
-# 
-# 
-# 
+
+
+
 # module "ec2_private_instance" {
 #   source  = "terraform-aws-modules/ec2-instance/aws"
 #   version = "5.8.0"
-# 
+
 #   name = "private-oidc-instance"
-# 
+
 #   instance_type               = "t2.micro"
 #   subnet_id                   = module.vpc.private_subnets[0]
 #   iam_instance_profile        = aws_iam_instance_profile.ec2_ssm_profile_oidc_module.name
@@ -32,10 +32,10 @@
 #     Environment = "oidc"
 #   }
 # }
-# 
+
 # resource "aws_iam_role" "ec2_ssm_role_module" {
 #   name = "EC2_SSM_Role_OIDC_module"
-# 
+
 #   assume_role_policy = jsonencode({
 #     Version = "2012-10-17"
 #     Statement = [
@@ -50,17 +50,17 @@
 #     ]
 #   })
 # }
-# 
+
 # resource "aws_iam_role_policy_attachment" "ssm_policy" {
 #   role       = aws_iam_role.ec2_ssm_role_module.name
 #   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 # }
-# 
+
 # resource "aws_iam_instance_profile" "ec2_ssm_profile_oidc_module" {
 #   name = "EC2_SSM_Profile_OIDC_module"
 #   role = aws_iam_role.ec2_ssm_role_module.name
 # }
-# 
+
 # resource "aws_security_group" "ssm_only" {
 #   name        = "ssm_only_sg"
 #   description = "Security group for instances managed by SSM without inbound access"
@@ -81,7 +81,7 @@
 #     Name = "ssm-only"
 #   }
 # }
-# 
+
 # resource "aws_security_group" "ssm_and_http" {
 #   name        = "ssm_and_http"
 #   description = "Security group for instances managed by SSM with inbound access for http"
@@ -108,7 +108,3 @@
 #     Name = "ssm-http"
 #   }
 # }
-
-
-
-      
