@@ -89,78 +89,78 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve
 
-      # # Wait for EC2 instance to be running and SSM ready
-      # - name: Wait for EC2 instance(s) to be SSM available
-      #   id: wait_ssm
-      #   run: |
-      #     INSTANCE_IDS=$(aws ec2 describe-instances \
-      #       --region eu-west-1 \
-      #       --filters "Name=tag:Name,Values=oidc-instance" \
-      #       --query "Reservations[*].Instances[*].InstanceId" \
-      #       --output text | tr '\n' ' ')
+      # Wait for EC2 instance to be running and SSM ready
+      - name: Wait for EC2 instance(s) to be SSM available
+        id: wait_ssm
+        run: |
+          INSTANCE_IDS=$(aws ec2 describe-instances \
+            --region eu-west-1 \
+            --filters "Name=tag:Name,Values=oidc-instance" \
+            --query "Reservations[*].Instances[*].InstanceId" \
+            --output text | tr '\n' ' ')
 
-      #     echo "Waiting for SSM availability: $INSTANCE_IDS"
+          echo "Waiting for SSM availability: $INSTANCE_IDS"
 
-      #     for ID in $INSTANCE_IDS; do
-      #       while true; do
-      #         STATUS=$(aws ssm describe-instance-information \
-      #           --filters "Key=InstanceIds,Values=$ID" \
-      #           --region eu-west-1 \
-      #           --query "InstanceInformationList[0].PingStatus" \
-      #           --output text 2>/dev/null)
+          for ID in $INSTANCE_IDS; do
+            while true; do
+              STATUS=$(aws ssm describe-instance-information \
+                --filters "Key=InstanceIds,Values=$ID" \
+                --region eu-west-1 \
+                --query "InstanceInformationList[0].PingStatus" \
+                --output text 2>/dev/null)
 
-      #         if [[ "$STATUS" == "Online" ]]; then
-      #           echo "$ID is now SSM available ✅"
-      #           break
-      #         fi
+              if [[ "$STATUS" == "Online" ]]; then
+                echo "$ID is now SSM available ✅"
+                break
+              fi
 
-      #         echo "Still waiting for $ID..."
-      #         sleep 10
-      #       done
-      #     done
+              echo "Still waiting for $ID..."
+              sleep 10
+            done
+          done
 
-      #     echo "instance_ids=$INSTANCE_IDS" >> $GITHUB_OUTPUT
+          echo "instance_ids=$INSTANCE_IDS" >> $GITHUB_OUTPUT
 
-      # # Step 16: Use SSM to send commands to the EC2 instance (install & configure nginx)
-      # - name: Fetch public instance ID and run SSM command
-      #   id: fetch_instances
-      #   run: |
-      #     INSTANCE_IDS=$(aws ec2 describe-instances \
-      #       --region eu-west-1 \
-      #       --filters "Name=tag:Name,Values=oidc-instance" "Name=instance-state-name,Values=running" \
-      #       --query "Reservations[*].Instances[*].InstanceId" \
-      #       --output text | tr '\n' ' ')
+      # Step 16: Use SSM to send commands to the EC2 instance (install & configure nginx)
+      - name: Fetch public instance ID and run SSM command
+        id: fetch_instances
+        run: |
+          INSTANCE_IDS=$(aws ec2 describe-instances \
+            --region eu-west-1 \
+            --filters "Name=tag:Name,Values=oidc-instance" "Name=instance-state-name,Values=running" \
+            --query "Reservations[*].Instances[*].InstanceId" \
+            --output text | tr '\n' ' ')
 
-      #     echo "Found instances: $INSTANCE_IDS"
+          echo "Found instances: $INSTANCE_IDS"
 
-      #     echo "instance_ids=$INSTANCE_IDS" >> $GITHUB_OUTPUT
+          echo "instance_ids=$INSTANCE_IDS" >> $GITHUB_OUTPUT
 
-      #     for ID in $INSTANCE_IDS; do
-      #       echo "Sending SSM command to $ID"
-      #       aws ssm send-command \
-      #         --instance-ids "$ID" \
-      #         --document-name "AWS-RunShellScript" \
-      #         --parameters commands='[
-      #           "sudo dnf update -y && sudo dnf install -y nginx",
-      #           "sudo mkdir -p /var/www/ssm",
-      #           "echo '\''<!doctype html><html><head><meta charset=\"utf-8\"><title>Hello, Nginx!</title></head><body><h1>Hello, Nginx!</h1><p>We have just configured our Nginx web server on Amazon Linux using an SSM command!</p></body></html>'\'' | sudo tee /var/www/ssm/index.html",
-      #           "echo '\''server { listen 80; server_name ssm.com; root /var/www/ssm; index index.html; location / { try_files $uri $uri/ =404; } }'\'' | sudo tee /etc/nginx/conf.d/ssm_site.conf",
-      #           "sudo systemctl enable nginx",
-      #           "sudo systemctl start nginx"
-      #         ]' \
-      #         --region eu-west-1 \
-      #         --output text
-      #     done
+          for ID in $INSTANCE_IDS; do
+            echo "Sending SSM command to $ID"
+            aws ssm send-command \
+              --instance-ids "$ID" \
+              --document-name "AWS-RunShellScript" \
+              --parameters commands='[
+                "sudo dnf update -y && sudo dnf install -y nginx",
+                "sudo mkdir -p /var/www/ssm",
+                "echo '\''<!doctype html><html><head><meta charset=\"utf-8\"><title>Hello, Nginx!</title></head><body><h1>Hello, Nginx!</h1><p>We have just configured our Nginx web server on Amazon Linux using an SSM command!</p></body></html>'\'' | sudo tee /var/www/ssm/index.html",
+                "echo '\''server { listen 80; server_name ssm.com; root /var/www/ssm; index index.html; location / { try_files $uri $uri/ =404; } }'\'' | sudo tee /etc/nginx/conf.d/ssm_site.conf",
+                "sudo systemctl enable nginx",
+                "sudo systemctl start nginx"
+              ]' \
+              --region eu-west-1 \
+              --output text
+          done
 
-      # # Step 17: Output the public IPs of the instances
-      # - name: Fetch and output public instance IPs
-      #   run: |
-      #     INSTANCE_IDS="${{ steps.fetch_instances.outputs.instance_ids }}"
-      #     for ID in $INSTANCE_IDS; do
-      #       PUBLIC_IP=$(aws ec2 describe-instances \
-      #         --region eu-west-1 \
-      #         --instance-ids "$ID" \
-      #         --query "Reservations[*].Instances[*].PublicIpAddress" \
-      #         --output text)
-      #       echo "Instance ID $ID has public IP: $PUBLIC_IP"
-      #     done
+      # Step 17: Output the public IPs of the instances
+      - name: Fetch and output public instance IPs
+        run: |
+          INSTANCE_IDS="${{ steps.fetch_instances.outputs.instance_ids }}"
+          for ID in $INSTANCE_IDS; do
+            PUBLIC_IP=$(aws ec2 describe-instances \
+              --region eu-west-1 \
+              --instance-ids "$ID" \
+              --query "Reservations[*].Instances[*].PublicIpAddress" \
+              --output text)
+            echo "Instance ID $ID has public IP: $PUBLIC_IP"
+          done
