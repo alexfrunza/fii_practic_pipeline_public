@@ -85,9 +85,9 @@ jobs:
       - name: Terraform Plan
         run: terraform plan
 
-      ## Step 15: Apply the plan to deploy infrastructure automatically
-      #- name: Terraform Apply
-      #  run: terraform apply -auto-approve
+      # Step 15: Apply the plan to deploy infrastructure automatically
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
 
       ## Wait for EC2 instance to be running and SSM ready
       #- name: Wait for EC2 instance(s) to be SSM available
